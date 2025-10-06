@@ -1,5 +1,5 @@
-module github.com/smallstep/pkcs7
+module github.com/blue-raspberry-consulting/pkcs7
 
-go 1.14
+go 1.24.0
 
-require golang.org/x/crypto v0.33.0
+require golang.org/x/crypto v0.42.0

@@ -17,9 +17,12 @@ import (
 func TestEncrypt(t *testing.T) {
 	modes := []int{
 		EncryptionAlgorithmDESCBC,
+		EncryptionAlgorithmDESEDE3CBC,
 		EncryptionAlgorithmAES128CBC,
+		EncryptionAlgorithmAES192CBC,
 		EncryptionAlgorithmAES256CBC,
 		EncryptionAlgorithmAES128GCM,
+		EncryptionAlgorithmAES192GCM,
 		EncryptionAlgorithmAES256GCM,
 	}
 	sigalgs := []x509.SignatureAlgorithm{
