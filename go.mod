@@ -1,4 +1,4 @@
-module github.com/blue-raspberry-consulting/pkcs7
+module github.com/smallstep/pkcs7
 
 go 1.24.0
 
