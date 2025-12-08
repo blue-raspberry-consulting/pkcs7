@@ -39,7 +39,11 @@ func TestEncrypt(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			encrypted, err := Encrypt(plaintext, []*x509.Certificate{cert.Certificate})
+			encrypted, err := Encrypt(
+				plaintext,
+				[]*x509.Certificate{cert.Certificate},
+				WithEncryptionAlgorithm(mode),
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -65,7 +69,6 @@ func TestEncryptUsingPSK(t *testing.T) {
 	}
 
 	for _, mode := range modes {
-		ContentEncryptionAlgorithm = mode
 		plaintext := []byte("Hello Secret World!")
 		var key []byte
 
@@ -75,7 +78,7 @@ func TestEncryptUsingPSK(t *testing.T) {
 		case EncryptionAlgorithmAES128GCM:
 			key = []byte("128BitKey4AESGCM")
 		}
-		ciphertext, err := EncryptUsingPSK(plaintext, key)
+		ciphertext, err := EncryptUsingPSK(plaintext, key, WithEncryptionAlgorithm(mode))
 		if err != nil {
 			t.Fatal(err)
 		}
