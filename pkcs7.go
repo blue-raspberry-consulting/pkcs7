@@ -222,8 +222,47 @@ func parseCompressedData(data []byte) (*PKCS7, error) {
 	if _, err := asn1.Unmarshal(data, &cd); err != nil {
 		return nil, err
 	}
+
+	if cd.Version != 0 {
+		return nil, errors.New("pkcs7: unsupported compression version")
+	}
+	if !cd.CompressionAlgorithm.Algorithm.Equal(OIDCompressionAlgorithmZLIB) {
+		return nil, errors.New("pkcs7: unsupported compression algorithm")
+	}
+	if !cd.EncapsulatedContentInfo.ContentType.Equal(OIDData) {
+		return nil, errors.New("pkcs7: invalid compression algorithm")
+	}
+
+	var compound asn1.RawValue
+	var content compressedBytes
+
+	// The Content.Bytes maybe empty on PKI responses.
+	if len(cd.EncapsulatedContentInfo.Content.Bytes) > 0 {
+		if _, err := asn1.Unmarshal(cd.EncapsulatedContentInfo.Content.Bytes, &compound); err != nil {
+			return nil, err
+		}
+	}
+	// Compound octet string
+	if compound.IsCompound {
+		if compound.Tag == 4 {
+			for len(compound.Bytes) > 0 {
+				var cdata asn1.RawValue
+				if _, err := asn1.Unmarshal(compound.Bytes, &cdata); err != nil {
+					return nil, err
+				}
+				content = append(content, cdata.Bytes...)
+				compound.Bytes = compound.Bytes[len(cdata.FullBytes):]
+			}
+		} else {
+			content = compound.Bytes
+		}
+	} else {
+		// assuming this is tag 04
+		content = compound.Bytes
+	}
+
 	return &PKCS7{
-		raw: cd,
+		raw: content,
 	}, nil
 }
 

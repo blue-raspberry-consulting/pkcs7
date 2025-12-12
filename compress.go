@@ -21,15 +21,10 @@ var ErrNotCompressedContent = errors.New("pkcs7: content data is not a compresse
 type compressedData struct {
 	Version                 int
 	CompressionAlgorithm    pkix.AlgorithmIdentifier
-	EncapsulatedContentInfo encapsulatedContentInfo
+	EncapsulatedContentInfo contentInfo
 }
 
-type encapsulatedContentInfo struct {
-	ContentType asn1.ObjectIdentifier
-	Content     []byte `asn1:"explicit,tag:0,optional"`
-}
-
-type compressedRaw = []byte
+type compressedBytes []byte
 
 // Compress creates and returns a compressed data PKCS7 structure,
 // The compression algorithm is set to ZLIB.
@@ -38,14 +33,18 @@ func Compress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	compressedContent, err := asn1.Marshal(compressed)
+	if err != nil {
+		return nil, err
+	}
 	cd := compressedData{
 		Version: 0,
 		CompressionAlgorithm: pkix.AlgorithmIdentifier{
 			Algorithm: OIDCompressionAlgorithmZLIB,
 		},
-		EncapsulatedContentInfo: encapsulatedContentInfo{
+		EncapsulatedContentInfo: contentInfo{
 			ContentType: OIDData,
-			Content:     compressed,
+			Content:     asn1.RawValue{Class: 2, Tag: 0, Bytes: compressedContent, IsCompound: true},
 		},
 	}
 	innerContent, err := asn1.Marshal(cd)
@@ -72,22 +71,11 @@ func compressZlib(data []byte) ([]byte, error) {
 }
 
 func (p7 *PKCS7) Decompress() ([]byte, error) {
-	cd, ok := p7.raw.(compressedData)
+	cd, ok := p7.raw.(compressedBytes)
 	if !ok {
 		return nil, ErrNotCompressedContent
 	}
-
-	if cd.Version != 0 {
-		return nil, errors.New("pkcs7: unsupported compression version")
-	}
-	if !cd.CompressionAlgorithm.Algorithm.Equal(OIDCompressionAlgorithmZLIB) {
-		return nil, errors.New("pkcs7: unsupported compression algorithm")
-	}
-	if !cd.EncapsulatedContentInfo.ContentType.Equal(OIDData) {
-		return nil, errors.New("pkcs7: invalid compression algorithm")
-	}
-
-	return decompressZlib(cd.EncapsulatedContentInfo.Content)
+	return decompressZlib(cd)
 }
 
 func decompressZlib(data []byte) ([]byte, error) {
