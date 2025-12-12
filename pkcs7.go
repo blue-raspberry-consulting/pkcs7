@@ -201,6 +201,8 @@ func Parse(data []byte) (p7 *PKCS7, err error) {
 		return parseEnvelopedData(info.Content.Bytes)
 	case info.ContentType.Equal(OIDEncryptedData):
 		return parseEncryptedData(info.Content.Bytes)
+	case info.ContentType.Equal(OIDCompressedData):
+		return parseCompressedData(info.Content.Bytes)
 	}
 	return nil, ErrUnsupportedContentType
 }
@@ -212,6 +214,16 @@ func parseEnvelopedData(data []byte) (*PKCS7, error) {
 	}
 	return &PKCS7{
 		raw: ed,
+	}, nil
+}
+
+func parseCompressedData(data []byte) (*PKCS7, error) {
+	var cd compressedData
+	if _, err := asn1.Unmarshal(data, &cd); err != nil {
+		return nil, err
+	}
+	return &PKCS7{
+		raw: cd,
 	}, nil
 }
 
